@@ -1,0 +1,11 @@
+@AJWT_HostAddress = http://localhost:5232
+
+##GET {{AJWT_HostAddress}}/todos/
+##Accept: application/json
+
+###
+
+##GET {{AJWT_HostAddress}}/todos/1
+##Accept: application/json
+
+###
