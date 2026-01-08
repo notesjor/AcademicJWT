@@ -32,9 +32,30 @@ namespace AJWT
       };
 
       app.MapGet("/key", () => Results.Text(_pem, "text/plain"));
+      app.MapGet("/time", () => Results.Json(GetSignedTime()));
       app.MapPost("/auth", AuthCall);
 
       app.Run();
+    }
+
+    private static DateResponse GetSignedTime()
+    {
+      var nowLocal = DateTime.Now;
+      var nowUtc = nowLocal.ToUniversalTime();
+      var jsIsoString = nowUtc.ToString("o");
+
+      byte[] hash;
+      using (var sha = SHA512.Create()) 
+        hash = sha.ComputeHash(Encoding.UTF8.GetBytes(jsIsoString));
+
+      if (_rsa?.Rsa == null)
+        throw new InvalidOperationException("RSA-Schlüssel ist nicht initialisiert.");
+
+      return new DateResponse
+      {
+        UtcNow = nowUtc,
+        UtcNowSignature = Convert.ToBase64String(_rsa.Rsa.SignHash(hash, HashAlgorithmName.SHA512, RSASignaturePadding.Pkcs1));
+      };
     }
 
     private static async Task AuthCall(HttpContext context)
@@ -56,6 +77,14 @@ namespace AJWT
       );
       
       await context.Response.WriteAsync(new JwtSecurityTokenHandler().WriteToken(token));
+    }
+
+    public class DateResponse
+    {
+      [JsonPropertyName("now")]
+      public DateTime UtcNow { get; set; }
+      [JsonPropertyName("signature")]
+      public string UtcNowSignature { get; set; }
     }
 
     public class AuthRequest
